@@ -9,9 +9,9 @@ abstract class MyListCase[+A] {
   // polymorphic call
   override def toString= "[" + printElements + "]"
 
-  def map[B](transformer: MyTransformer[A, B]) : MyListCase[B]
-  def flatMap[B](transformer: MyTransformer[A, MyListCase[B]]): MyListCase[B]
-  def filter(predicate: MyPredicate[A]): MyListCase[A]
+  def map[B](transformer: MyTransformerObject[A, B]) : MyListCase[B]
+  def flatMap[B](transformer: MyTransformerObject[A, MyListCase[B]]): MyListCase[B]
+  def filter(predicate: MyPredicateObject[A]): MyListCase[A]
 
   // concatenation
   def ++[B >: A](list: MyListCase[B]): MyListCase[B]
@@ -24,9 +24,9 @@ case object EmptyListCase extends MyListCase[Nothing] {
   def add[B >: Nothing](element: B): MyListCase[B] = new ConsCase[B](element, EmptyListCase)
   def printElements: String = ""
 
-  def map[B](transformer: MyTransformer[Nothing, B]) : MyListCase[B] = EmptyListCase
-  def flatMap[B](transformer: MyTransformer[Nothing, MyListCase[B]]): MyListCase[B] = EmptyListCase
-  def filter(predicate: MyPredicate[Nothing]): MyListCase[Nothing] = EmptyListCase
+  def map[B](transformer: MyTransformerObject[Nothing, B]) : MyListCase[B] = EmptyListCase
+  def flatMap[B](transformer: MyTransformerObject[Nothing, MyListCase[B]]): MyListCase[B] = EmptyListCase
+  def filter(predicate: MyPredicateObject[Nothing]): MyListCase[Nothing] = EmptyListCase
 
   def ++[B >: Nothing](list: MyListCase[B]): MyListCase[B] = list
 }
@@ -41,13 +41,13 @@ case class ConsCase[+A] (h: A, t: MyListCase[A]) extends MyListCase[A] {
     if(t.isEmpty) "" + h
     else h + " " + tail.printElements
 
-  def map[B](transformer: MyTransformer[A, B]) : MyListCase[B] =
+  def map[B](transformer: MyTransformerObject[A, B]) : MyListCase[B] =
     new ConsCase(transformer.transform(h), t.map(transformer))
 
-  def flatMap[B](transformer: MyTransformer[A, MyListCase[B]]): MyListCase[B] =
+  def flatMap[B](transformer: MyTransformerObject[A, MyListCase[B]]): MyListCase[B] =
     transformer.transform(h) ++ t.flatMap(transformer)
 
-  def filter(predicate: MyPredicate[A]): MyListCase[A] =
+  def filter(predicate: MyPredicateObject[A]): MyListCase[A] =
     if(predicate.test(h)) new ConsCase(h, t.filter(predicate))
     else t.filter(predicate)
 
@@ -55,11 +55,11 @@ case class ConsCase[+A] (h: A, t: MyListCase[A]) extends MyListCase[A] {
     new ConsCase(h, t ++ list)
 }
 
-trait MyPredicate[-T] {
+trait MyPredicateObject[-T] {
   def test(element: T) : Boolean
 }
 
-trait MyTransformer[-A, B] {
+trait MyTransformerObject[-A, B] {
   def transform(element: A) : B
 }
 
@@ -72,16 +72,16 @@ object ListTestGenerics3 extends App {
   println(listOfIntegers.toString)
   println(listOfString.toString)
 
-  println(listOfIntegers.map(new MyTransformer[Int, Int] {
+  println(listOfIntegers.map(new MyTransformerObject[Int, Int] {
     override def transform(element: Int): Int = element * 2
   }).toString)
 
-  println(listOfIntegers.filter(new MyPredicate[Int] {
+  println(listOfIntegers.filter(new MyPredicateObject[Int] {
     override def test(element: Int): Boolean = element % 2 == 0
   }).toString)
 
   println((listOfIntegers ++ anotherListOfIntegers).toString)
-  println(listOfIntegers.flatMap(new MyTransformer[Int, MyListCase[Int]] {
+  println(listOfIntegers.flatMap(new MyTransformerObject[Int, MyListCase[Int]] {
     override def transform(element: Int): MyListCase[Int] =
       new ConsCase[Int](element, new ConsCase[Int](element + 1, EmptyListCase))
   }).toString)
