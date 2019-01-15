@@ -18,6 +18,12 @@ abstract class MyListCase[+A] {
 
   // concatenation
   def ++[B >: A](list: MyListCase[B]): MyListCase[B]
+
+  // hofs
+  def foreach(f: A => Unit): Unit
+  def sort(compare: (A, A) => Int): MyListCase[A]
+  def zipWidth[B, C](list: MyListCase[B], zip: (A, B) => C): MyListCase[C]
+  def fold[B](start: B)(operator: (B, A) => B): B
 }
 
 case object EmptyListCase extends MyListCase[Nothing] {
@@ -35,6 +41,15 @@ case object EmptyListCase extends MyListCase[Nothing] {
   def filter(predicate: Nothing => Boolean): MyListCase[Nothing] = EmptyListCase
 
   def ++[B >: Nothing](list: MyListCase[B]): MyListCase[B] = list
+
+  // hofs
+  def foreach(f: Nothing => Unit): Unit = ()
+  def sort(compare: (Nothing, Nothing) => Int) = EmptyListCase
+  def zipWidth[B, C](list: MyListCase[B], zip: (Nothing, B) => C): MyListCase[C] =
+    if(!list.isEmpty) throw new RuntimeException("Lists do not have the same length")
+    else EmptyListCase
+
+  def fold[B](start: B)(operator: (B, Nothing) => B): B = start
 }
 
 case class ConsCase[+A] (h: A, t: MyListCase[A]) extends MyListCase[A] {
@@ -60,6 +75,29 @@ case class ConsCase[+A] (h: A, t: MyListCase[A]) extends MyListCase[A] {
 
   def ++[B >: A](list: MyListCase[B]): MyListCase[B] =
     new ConsCase(h, t ++ list)
+
+  // hofs
+  def foreach(f: A => Unit): Unit = {
+    f(h)
+    t.foreach(f)
+  }
+  def sort(compare: (A, A) => Int): MyListCase[A] = {
+    def insert(x: A, sortedList: MyListCase[A]): MyListCase[A] = {
+      if(sortedList.isEmpty) new ConsCase(x, EmptyListCase)
+      else if(compare(x, sortedList.head) <= 0) new ConsCase(x, sortedList)
+      else new ConsCase(sortedList.head, insert(x, sortedList.tail))
+    }
+
+    val sortedTail = t.sort(compare)
+    insert(h, sortedTail)
+  }
+
+  def zipWidth[B, C](list: MyListCase[B], zip: (A, B) => C): MyListCase[C] =
+    if(list.isEmpty) throw new RuntimeException("Lists do not have the same length")
+    else new ConsCase(zip(h, list.head), t.zipWidth(list.tail, zip))
+
+  def fold[B](start: B)(operator: (B, A) => B): B =
+    t.fold(operator(start, h))(operator)
 }
 
 /* trait MyPredicateObject[-T] {
@@ -88,4 +126,12 @@ object ListTestGenerics3 extends App {
   println(listOfIntegers.flatMap(elem => new ConsCase(elem + 1, EmptyListCase)).toString)
 
   println(listOfIntegers == cloneListOfIntegers)
+
+  listOfIntegers.foreach(println)
+
+  println(listOfIntegers.sort((x, y) => y - x))
+
+  println(anotherListOfIntegers.zipWidth[String, String](listOfString, (x, y) => s"$x-$y"))
+
+  println(listOfIntegers.fold(0)((x, y) => x + y))
 }
