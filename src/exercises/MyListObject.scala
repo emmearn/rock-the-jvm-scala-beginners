@@ -134,4 +134,12 @@ object ListTestGenerics3 extends App {
   println(anotherListOfIntegers.zipWidth[String, String](listOfString, (x, y) => s"$x-$y"))
 
   println(listOfIntegers.fold(0)((x, y) => x + y))
+
+  // for comprehension
+  val combinations = for {
+    n <- listOfIntegers
+    string <- listOfString
+  } yield s"$n - $string"
+
+  println(combinations)
 }
