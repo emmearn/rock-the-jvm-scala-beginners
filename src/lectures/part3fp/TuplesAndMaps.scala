@@ -1,5 +1,7 @@
 package lectures.part3fp
 
+import scala.annotation.tailrec
+
 object TuplesAndMaps extends App {
   // tuples = finite ordered "lists"
   val aTuple = new Tuple2(2, "hello, scala") // Tuple2[Int, String] = (Int, String)
@@ -11,7 +13,7 @@ object TuplesAndMaps extends App {
   // Maps - keys -> values
   val aMap: Map[String, Int] = Map()
 
-  val phonebook = Map(("Jim", 555), "Daniel" -> 789).withDefaultValue(-1)
+  val phonebook = Map(("Jim", 555), "Daniel" -> 789, ("JIM", 9000)).withDefaultValue(-1)
   // a -> b is sugar for (a, b)
   println(phonebook)
 
@@ -41,4 +43,37 @@ object TuplesAndMaps extends App {
 
   val names = List("Bob", "James", "Angela", "Mary", "Daniel", "Jim")
   println(names.groupBy(name => name.charAt(0)))
+
+  def add(network: Map[String, Set[String]], person: String): Map[String, Set[String]] =
+    network + (person -> Set())
+
+  def friend(network: Map[String, Set[String]], a: String, b: String): Map[String, Set[String]] = {
+    val friendsA = network(a)
+    val friendsB = network(b)
+    network + (a -> (friendsA + b)) + (b -> (friendsB + a))
+  }
+
+  def unfriend(network: Map[String, Set[String]], a: String, b: String): Map[String, Set[String]] = {
+    val friendsA = network(a)
+    val friendsB = network(b)
+    network + (a -> (friendsA - b)) + (b -> (friendsB - a))
+  }
+
+  def remove(network: Map[String, Set[String]], person: String): Map[String, Set[String]] = {
+    @tailrec
+    def removeAux(friends: Set[String], networkAcc: Map[String, Set[String]]): Map[String, Set[String]] = {
+      if(friends.isEmpty) networkAcc
+      else removeAux(friends.tail, unfriend(networkAcc, person, friends.head))
+    }
+
+    val unfriended = removeAux(network(person), network)
+    unfriended - person
+  }
+
+  val empty: Map[String, Set[String]] = Map()
+  val network = add(add(empty, "Bob"), "Mary")
+  println(network)
+  println(friend(network, "Bob", "Mary"))
+  println(unfriend(friend(network, "Bob", "Mary"), "Bob", "Mary"))
+  println(remove(friend(network, "Bob", "Mary"), "Bob"))
 }
